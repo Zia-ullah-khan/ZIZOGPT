@@ -1,0 +1,117 @@
+# Supervised Fine-Tuning (SFT) Configuration for ZIZOGPT
+# Using NVIDIA Nemotron Post-Training Datasets
+
+model:
+  # Path to pre-trained model (from pre-training step or HuggingFace)
+  pretrained_model_name_or_path: "./outputs/pretrain/final"
+  
+  # LoRA configuration for efficient fine-tuning
+  use_lora: true
+  lora_config:
+    r: 64
+    lora_alpha: 128
+    lora_dropout: 0.05
+    target_modules:
+      - "q_proj"
+      - "k_proj"
+      - "v_proj"
+      - "o_proj"
+      - "gate_proj"
+      - "up_proj"
+      - "down_proj"
+    bias: "none"
+    task_type: "CAUSAL_LM"
+  
+  # Quantization for memory efficiency
+  use_4bit: false
+  bnb_4bit_compute_dtype: "bfloat16"
+  bnb_4bit_quant_type: "nf4"
+  use_nested_quant: false
+
+# Nemotron Post-Training Datasets
+datasets:
+  sft:
+    # General instruction following
+    - name: "nvidia/Nemotron-Instruction-Following-Chat-v1"
+      weight: 0.3
+      streaming: true
+      split: "train"
+      
+    # Math reasoning
+    - name: "nvidia/Nemotron-Math-v2"
+      weight: 0.25
+      streaming: true
+      split: "train"
+      
+    # Math proofs
+    - name: "nvidia/Nemotron-Math-Proofs-v1"
+      weight: 0.15
+      streaming: true
+      split: "train"
+      
+    # Science
+    - name: "nvidia/Nemotron-Science-v1"
+      weight: 0.15
+      streaming: true
+      split: "train"
+      
+    # Agentic capabilities
+    - name: "nvidia/Nemotron-Agentic-v1"
+      weight: 0.1
+      streaming: false
+      split: "train"
+      
+    # Competitive programming
+    - name: "nvidia/Nemotron-Competitive-Programming-v1"
+      weight: 0.05
+      streaming: false
+      split: "train"
+
+training:
+  # Training hyperparameters
+  per_device_train_batch_size: 4
+  per_device_eval_batch_size: 4
+  gradient_accumulation_steps: 4
+  num_train_epochs: 3
+  max_steps: -1
+  
+  # Learning rate schedule
+  learning_rate: 2.0e-5
+  lr_scheduler_type: "cosine"
+  warmup_ratio: 0.03
+  weight_decay: 0.0
+  
+  # Gradient settings
+  max_grad_norm: 1.0
+  gradient_checkpointing: true
+  
+  # Precision
+  bf16: true
+  tf32: true
+  
+  # Sequence length
+  max_seq_length: 4096
+  
+  # Logging
+  logging_steps: 10
+  save_steps: 500
+  eval_steps: 250
+  save_total_limit: 3
+  
+  # Distributed training
+  deepspeed: null  # Use for multi-GPU
+  
+  # Output
+  output_dir: "./outputs/sft"
+  overwrite_output_dir: true
+  
+  # Wandb
+  report_to: "wandb"
+  run_name: "zizogpt-sft"
+
+# Chat template for instruction tuning
+chat_template:
+  system_prompt: "You are ZIZOGPT, a helpful, harmless, and honest AI assistant."
+  user_prefix: "<|user|>\n"
+  assistant_prefix: "<|assistant|>\n"
+  end_token: "<|end|>"
