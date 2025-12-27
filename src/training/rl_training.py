@@ -42,15 +42,11 @@ class ModelArguments:
     
     model_name_or_path: str = field(
         default="./outputs/sft/final",
-        metadata={"help": "Path to SFT model"}
+        metadata={"help": "Path to the SFT model"}
     )
-    ref_model_name_or_path: Optional[str] = field(
+    tokenizer_path: Optional[str] = field(
         default=None,
-        metadata={"help": "Path to reference model (if different from main model)"}
-    )
-    tokenizer_name: Optional[str] = field(
-        default=None,
-        metadata={"help": "Tokenizer name or path"}
+        metadata={"help": "Tokenizer path if different from model"}
     )
     num_attention_heads: int = field(
         default=16,
@@ -352,8 +348,9 @@ def main():
     
     # Load tokenizer
     tokenizer = AutoTokenizer.from_pretrained(
-        model_args.tokenizer_name or model_args.model_name_or_path,
+        model_args.tokenizer_path or model_args.model_name_or_path,
         trust_remote_code=True,
+        padding_side="left",  # DPO requires left padding
     )
     
     if tokenizer.pad_token is None:

@@ -48,9 +48,9 @@ class ModelArguments:
         default="./outputs/pretrain/final",
         metadata={"help": "Path to pretrained model"}
     )
-    tokenizer_name: Optional[str] = field(
+    tokenizer_path: Optional[str] = field(
         default=None,
-        metadata={"help": "Tokenizer name or path if different from model"}
+        metadata={"help": "Tokenizer path if different from model"}
     )
     num_attention_heads: int = field(
         default=16,
@@ -341,7 +341,7 @@ def main():
     
     # Load tokenizer
     tokenizer = AutoTokenizer.from_pretrained(
-        model_args.tokenizer_name or model_args.model_name_or_path,
+        model_args.tokenizer_path or model_args.model_name_or_path,
         trust_remote_code=True,
     )
     

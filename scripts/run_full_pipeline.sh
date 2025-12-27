@@ -36,7 +36,7 @@ echo "======================================"
 python scripts/run_pretrain.py \
     --from_scratch true \
     --architecture llama \
-    --tokenizer_name $TOKENIZER_PATH \
+    --tokenizer_path $TOKENIZER_PATH \
     --hidden_size 2048 \
     --intermediate_size 5504 \
     --num_hidden_layers 24 \
@@ -69,7 +69,7 @@ echo "======================================"
 
 python scripts/run_sft.py \
     --model_name_or_path ./outputs/pretrain/final \
-    --tokenizer_name $TOKENIZER_PATH \
+    --tokenizer_path $TOKENIZER_PATH \
     --use_lora true \
     --lora_r 64 \
     --lora_alpha 128 \
@@ -98,7 +98,7 @@ echo "======================================"
 
 python scripts/run_rl.py \
     --model_name_or_path ./outputs/sft/final \
-    --tokenizer_name $TOKENIZER_PATH \
+    --tokenizer_path $TOKENIZER_PATH \
     --use_lora true \
     --lora_r 32 \
     --lora_alpha 64 \
