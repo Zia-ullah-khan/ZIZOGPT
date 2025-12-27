@@ -206,7 +206,11 @@ class NemotronDataLoader:
 
         logger.info("Formatting SFT datasets...")
         # Use a consistent 'text' column for the SFTTrainer
-        formatted_dataset = raw_datasets.map(format_chat)
+        # Remove original columns to prevent SFTTrainer from trying to apply chat template
+        formatted_dataset = raw_datasets.map(
+            format_chat,
+            remove_columns=raw_datasets.column_names if hasattr(raw_datasets, 'column_names') else None
+        )
         
         return formatted_dataset
     
