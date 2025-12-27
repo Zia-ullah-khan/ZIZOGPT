@@ -101,9 +101,9 @@ class ModelArguments:
         default=False,
         metadata={"help": "Train model from scratch instead of loading pretrained"}
     )
-    tokenizer_name: Optional[str] = field(
+    tokenizer_path: Optional[str] = field(
         default=None,
-        metadata={"help": "Tokenizer name or path if different from model"}
+        metadata={"help": "Tokenizer path if different from model (or path to custom trained tokenizer)"}
     )
 
 
@@ -282,11 +282,11 @@ def main():
         logger.info("Loading model from pretrained checkpoint...")
         model_config = ModelConfig(
             pretrained_model_name_or_path=model_args.model_name_or_path,
-            use_flash_attention=model_args.use_flash_attention,
+            use_flash_attention_2=model_args.use_flash_attention_2,
         )
         model, tokenizer = create_model_and_tokenizer(
-            config=model_config,
-            tokenizer_path=model_args.tokenizer_name,
+            model_config=model_config,
+            tokenizer_path=model_args.tokenizer_path,
             from_scratch=False,
         )
     
