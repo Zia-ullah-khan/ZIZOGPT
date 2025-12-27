@@ -176,7 +176,44 @@ class NemotronDataLoader:
         else:
             raw_datasets = loaded_datasets[0]
 
-        return raw_datasets
+        def format_chat(example: Dict[str, Any]) -> Dict[str, str]:
+            # This function attempts to handle various chat formats
+            formatted_text = ""
+            if "conversations" in example:
+                for turn in example["conversations"]:
+                    role = turn.get("from", "user").lower()
+                    content = turn.get("value", "")
+                    formatted_text += f"<|{role}|>\n{content}\n"
+            elif "messages" in example:
+                for msg in example["messages"]:
+                    role = msg.get("role", "user").lower()
+                    content = msg.get("content", "")
+                    formatted_text += f"<|{role}|>\n{content}\n"
+            elif "prompt" in example and "response" in example:
+                formatted_text = f"<|user|>\n{example['prompt']}\n<|assistant|>\n{example['response']}\n"
+            elif "instruction" in example and "output" in example:
+                instruction = example['instruction']
+                input_text = example.get('input', '')
+                prompt = f"{instruction}\n{input_text}".strip()
+                formatted_text = f"<|user|>\n{prompt}\n<|assistant|>\n{example['output']}\n"
+            elif "text" in example:
+                 formatted_text = example["text"] # Assumes pre-formatted
+            else:
+                 # Fallback for unknown formats
+                 formatted_text = str(example)
+            
+            return {"text": formatted_text}
+
+        logger.info("Formatting SFT datasets...")
+        # Use a consistent 'text' column for the SFTTrainer
+        # Remove original columns to prevent SFTTrainer from trying to apply chat template
+        column_names = list(next(iter(raw_datasets)).keys())
+        formatted_dataset = raw_datasets.map(
+            format_chat,
+            remove_columns=column_names
+        )
+        
+        return formatted_dataset
     
     def load_rl_dataset(
         self,

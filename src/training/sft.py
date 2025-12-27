@@ -444,13 +444,13 @@ def main():
         remove_unused_columns=training_args.remove_unused_columns,
         report_to=training_args.report_to,
         run_name=training_args.run_name,
-        packing=data_args.packing
+        packing=data_args.packing,
+        dataset_text_field="text"
     )
     
     # Initialize trainer
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tokenizer,
         args=sft_config,
         train_dataset=train_dataset,
         peft_config=peft_config,
