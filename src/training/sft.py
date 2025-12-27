@@ -405,7 +405,6 @@ def main():
         lr_scheduler_type=training_args.lr_scheduler_type,
         logging_steps=training_args.logging_steps,
         save_steps=training_args.save_steps,
-        eval_steps=training_args.eval_steps if training_args.eval_strategy != "no" else None,
         save_total_limit=training_args.save_total_limit,
         bf16=training_args.bf16,
         tf32=training_args.tf32,
@@ -414,9 +413,7 @@ def main():
         remove_unused_columns=training_args.remove_unused_columns,
         report_to=training_args.report_to,
         run_name=training_args.run_name,
-        max_seq_length=data_args.max_seq_length,
         packing=data_args.packing,
-        dataset_text_field="text",
     )
     
     # Initialize trainer
@@ -424,8 +421,10 @@ def main():
         model=model,
         args=sft_config,
         train_dataset=train_dataset,
-        processing_class=tokenizer,
-        peft_config=peft_config if not model_args.use_lora else None,  # Already applied
+        tokenizer=tokenizer,
+        peft_config=peft_config,
+        max_seq_length=data_args.max_seq_length,
+        dataset_text_field="text", # data_loader now provides this
     )
     
     # Train
