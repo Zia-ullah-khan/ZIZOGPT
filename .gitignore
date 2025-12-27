@@ -75,7 +75,6 @@ cache/
 Thumbs.db
 
 # Data
-data/
 datasets/
 *.parquet
 *.arrow

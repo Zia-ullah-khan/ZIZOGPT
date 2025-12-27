@@ -16,7 +16,7 @@ def main():
 
     # For training the tokenizer, we can use a sample of the data.
     # The sample dataset is good for this.
-    dataset = load_dataset("nvidia/Nemotron-Pretraining-Dataset-sample", split="train")
+    dataset = load_dataset("nvidia/Nemotron-Pretraining-Dataset-sample", "Nemotron-CC-High-Quality", split="train")
 
     def text_iterator(sample_size):
         count = 0
