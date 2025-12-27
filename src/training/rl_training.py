@@ -52,9 +52,9 @@ class ModelArguments:
         default=None,
         metadata={"help": "Tokenizer name or path"}
     )
-    use_flash_attention: bool = field(
+    use_flash_attention_2: bool = field(
         default=True,
-        metadata={"help": "Use Flash Attention 2"}
+        metadata={"help": "Enable Flash Attention 2 for faster training."}
     )
     
     # LoRA configuration
@@ -315,7 +315,7 @@ def main():
         device_map="auto" if quantization_config else None,
         torch_dtype=torch_dtype,
         trust_remote_code=True,
-        attn_implementation="flash_attention_2" if model_args.use_flash_attention else None,
+        attn_implementation="flash_attention_2" if model_args.use_flash_attention_2 else None,
     )
     
     # Load reference model (for DPO)
