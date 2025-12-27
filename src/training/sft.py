@@ -416,7 +416,7 @@ def main():
         run_name=training_args.run_name,
         packing=data_args.packing,
         dataset_text_field="text",  # Moved from SFTTrainer to SFTConfig
-        max_seq_length=data_args.max_seq_length,
+        #max_seq_length=data_args.max_seq_length,
     )
     
     # Initialize trainer
