@@ -351,6 +351,24 @@ def main():
         tokenizer.pad_token = tokenizer.eos_token
         model.config.pad_token_id = tokenizer.eos_token_id
     
+    # Set chat template if not already set (required for SFTTrainer with chat datasets)
+    if tokenizer.chat_template is None:
+        logger.info("Setting default chat template for tokenizer...")
+        # Define a simple chat template compatible with the format_chat_template function
+        chat_template = (
+            "{% for message in messages %}"
+            "{% if message['role'] == 'system' %}"
+            "<|system|>\n{{ message['content'] }}<|end|>\n"
+            "{% elif message['role'] == 'user' %}"
+            "<|user|>\n{{ message['content'] }}<|end|>\n"
+            "{% elif message['role'] == 'assistant' %}"
+            "<|assistant|>\n{{ message['content'] }}<|end|>\n"
+            "{% endif %}"
+            "{% endfor %}"
+            "{% if add_generation_prompt %}<|assistant|>\n{% endif %}"
+        )
+        tokenizer.chat_template = chat_template
+    
     # Setup LoRA
     peft_config = None
     if model_args.use_lora:
