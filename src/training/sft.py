@@ -52,6 +52,22 @@ class ModelArguments:
         default=None,
         metadata={"help": "Tokenizer name or path if different from model"}
     )
+    num_attention_heads: int = field(
+        default=16,
+        metadata={"help": "Number of attention heads."}
+    )
+    num_key_value_heads: int = field(
+        default=16,
+        metadata={"help": "Number of key-value heads."}
+    )
+    rope_theta: float = field(
+        default=10000.0,
+        metadata={"help": "RoPE theta value."}
+    )
+    initializer_range: float = field(
+        default=0.02,
+        metadata={"help": "Initializer range for model weights."}
+    )
     use_flash_attention_2: bool = field(
         default=True,
         metadata={"help": "Enable Flash Attention 2 for faster training."}
