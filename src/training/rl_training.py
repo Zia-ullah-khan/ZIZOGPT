@@ -350,7 +350,8 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.tokenizer_path or model_args.model_name_or_path,
         trust_remote_code=True,
-        padding_side="left",  # DPO requires left padding
+        padding_side="left",
+        model_max_length=data_args.max_seq_length,
     )
     
     if tokenizer.pad_token is None:

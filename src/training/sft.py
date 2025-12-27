@@ -343,6 +343,7 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.tokenizer_path or model_args.model_name_or_path,
         trust_remote_code=True,
+        model_max_length=data_args.max_seq_length,
     )
     
     # Set padding token
@@ -422,7 +423,6 @@ def main():
         args=sft_config,
         train_dataset=train_dataset,
         peft_config=peft_config,
-        max_seq_length=data_args.max_seq_length,
         dataset_text_field="text",
     )
     
