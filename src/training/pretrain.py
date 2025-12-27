@@ -177,6 +177,7 @@ def get_pretrain_datasets(data_args: DataArguments, streaming: bool = True) -> L
         return [
             DatasetConfig(
                 name="nvidia/Nemotron-Pretraining-Dataset-sample",
+                config_name="Nemotron-CC-High-Quality",
                 weight=1.0,
                 streaming=False,
                 split="train",
