@@ -415,6 +415,8 @@ def main():
         report_to=training_args.report_to,
         run_name=training_args.run_name,
         packing=data_args.packing,
+        dataset_text_field="text",  # Moved from SFTTrainer to SFTConfig
+        max_seq_length=data_args.max_seq_length,
     )
     
     # Initialize trainer
@@ -423,7 +425,6 @@ def main():
         args=sft_config,
         train_dataset=train_dataset,
         peft_config=peft_config,
-        dataset_text_field="text",
     )
     
     # Train
