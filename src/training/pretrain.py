@@ -274,12 +274,12 @@ def main():
             use_flash_attention_2=model_args.use_flash_attention_2,
         )
         model, tokenizer = create_model_and_tokenizer(
-            config=model_config,
-            tokenizer_path=model_args.tokenizer_name or "meta-llama/Llama-2-7b-hf",
+            model_config=model_config,
             from_scratch=True,
+            tokenizer_path=model_args.tokenizer_path
         )
     else:
-        logger.info(f"Loading pretrained model: {model_args.model_name_or_path}")
+        logger.info("Loading model from pretrained checkpoint...")
         model_config = ModelConfig(
             pretrained_model_name_or_path=model_args.model_name_or_path,
             use_flash_attention=model_args.use_flash_attention,
