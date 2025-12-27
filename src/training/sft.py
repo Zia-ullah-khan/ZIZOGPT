@@ -414,6 +414,7 @@ def main():
         report_to=training_args.report_to,
         run_name=training_args.run_name,
         packing=data_args.packing,
+        peft_config=peft_config,
     )
     
     # Initialize trainer
@@ -421,10 +422,8 @@ def main():
         model=model,
         args=sft_config,
         train_dataset=train_dataset,
-        tokenizer=tokenizer,
-        peft_config=peft_config,
         max_seq_length=data_args.max_seq_length,
-        dataset_text_field="text", # data_loader now provides this
+        dataset_text_field="text",
     )
     
     # Train
