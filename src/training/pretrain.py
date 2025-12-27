@@ -305,8 +305,7 @@ def main():
     
     dataset_configs = get_pretrain_datasets(data_args, streaming=data_args.streaming)
     train_dataset = data_loader.load_pretrain_datasets(
-        dataset_configs=dataset_configs,
-        use_sample=data_args.use_sample_dataset,
+        dataset_configs=dataset_configs
     )
     
     logger.info(f"Dataset loaded: {train_dataset}")
