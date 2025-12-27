@@ -392,6 +392,18 @@ def main():
     
     logger.info(f"Dataset loaded: {train_dataset}")
     
+    # For streaming datasets, max_steps must be specified since __len__ is not available
+    if data_args.streaming and training_args.max_steps <= 0:
+        # Calculate max_steps based on a reasonable default
+        # Default: 10000 steps for streaming, can be overridden via command line
+        default_max_steps = 10000
+        logger.warning(
+            f"Streaming dataset does not support __len__. "
+            f"Setting max_steps to {default_max_steps}. "
+            f"Override with --max_steps argument if needed."
+        )
+        training_args.max_steps = default_max_steps
+    
     # Create SFT config
     sft_config = SFTConfig(
         output_dir=training_args.output_dir,
@@ -415,8 +427,7 @@ def main():
         report_to=training_args.report_to,
         run_name=training_args.run_name,
         packing=data_args.packing,
-        dataset_text_field="text",  # Moved from SFTTrainer to SFTConfig
-        #max_seq_length=data_args.max_seq_length,
+        dataset_text_field="text"
     )
     
     # Initialize trainer
