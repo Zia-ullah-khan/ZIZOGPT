@@ -174,7 +174,7 @@ def get_sft_datasets(data_args: DataArguments, streaming: bool = True) -> List[D
             name="nvidia/Nemotron-Instruction-Following-Chat-v1",
             weight=0.3,
             streaming=streaming,
-            split="train",
+            split="chat_if", # Corrected split name
         ),
         "math": DatasetConfig(
             name="nvidia/Nemotron-Math-v2",
