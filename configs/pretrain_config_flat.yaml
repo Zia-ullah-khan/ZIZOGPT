@@ -47,3 +47,4 @@ streaming: true
 num_proc: 16
 # Dataset weights passed as string since argparse expects it
 dataset_weights: "0.5,0.2,0.15,0.1,0.05"
+use_sample_dataset: true
