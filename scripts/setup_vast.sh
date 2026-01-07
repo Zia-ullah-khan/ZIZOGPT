@@ -20,7 +20,6 @@ pip uninstall -y dill pyarrow datasets
 # Use --ignore-installed to force our versions over the system-pinned ones
 pip install --upgrade --ignore-installed -r requirements.txt
 pip install flash-attn --no-build-isolation
-pip install flash-attn --no-build-isolation
 
 # 3. Authentication
 echo "[3/5] Authentication Setup"
