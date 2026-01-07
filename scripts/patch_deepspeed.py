@@ -1,15 +1,34 @@
 
 import os
-import deepspeed
+import site
 import logging
+import glob
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def patch_deepspeed():
-    ds_path = os.path.dirname(deepspeed.__file__)
-    target_file = os.path.join(ds_path, "runtime", "zero", "stage_1_and_2.py")
+    # Find site-packages
+    site_packages = site.getsitepackages()
+    target_file = None
     
+    for sp in site_packages:
+        possible_path = os.path.join(sp, "deepspeed", "runtime", "zero", "stage_1_and_2.py")
+        if os.path.exists(possible_path):
+            target_file = possible_path
+            break
+            
+    if not target_file:
+        # Fallback search
+        logger.warning("Standard site-packages search failed. Searching /usr/local/lib...")
+        files = glob.glob("/usr/local/lib/python*/dist-packages/deepspeed/runtime/zero/stage_1_and_2.py")
+        if files:
+            target_file = files[0]
+            
+    if not target_file:
+        logger.error("Could not locate deepspeed/runtime/zero/stage_1_and_2.py")
+        return
+
     logger.info(f"Patching DeepSpeed at: {target_file}")
     
     with open(target_file, "r") as f:
