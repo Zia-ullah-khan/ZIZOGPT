@@ -1,6 +1,7 @@
 # Pre-training Configuration for ZIZOGPT (FLATTENED for HfArgumentParser)
 
 # --- Model Arguments ---
+from_scratch: true
 architecture: "llama"
 hidden_size: 2048
 intermediate_size: 5504
