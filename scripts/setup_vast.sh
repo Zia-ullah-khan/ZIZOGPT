@@ -11,15 +11,15 @@ apt-get update && apt-get install -y git ninja-build libaio-dev python3-pip
 
 # 2. Python Requirements
 echo "[2/5] Installing Python Libraries..."
-# Upgrade pip first
+unset PIP_CONSTRAINT
 pip install --upgrade pip
 
-# Install PyTorch (assuming pre-installed on good images, but verifying)
-# For Blackwell, we'd ideally want PyTorch Nightly or 2.5+, but standard 2.4 is safe default
-pip install torch --index-url https://download.pytorch.org/whl/cu121
+# Pre-emptively remove conflicting versions
+pip uninstall -y dill pyarrow datasets
 
-# Install Project Deps
-pip install -r requirements.txt
+# Use --ignore-installed to force our versions over the system-pinned ones
+pip install --upgrade --ignore-installed -r requirements.txt
+pip install flash-attn --no-build-isolation
 pip install flash-attn --no-build-isolation
 
 # 3. Authentication

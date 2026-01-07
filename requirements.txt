@@ -7,33 +7,32 @@ peft>=0.7.0
 
 # Training Utilities
 trl>=0.7.0
-bitsandbytes>=0.41.0
-flash-attn>=2.3.0
-deepspeed>=0.12.0
+bitsandbytes
+deepspeed
 
 # HuggingFace Integration
-huggingface-hub>=0.20.0
-tokenizers>=0.15.0
-safetensors>=0.4.0
+huggingface-hub
+tokenizers
+safetensors
 
 # Data Processing
-numpy>=1.24.0
-pandas>=2.0.0
-pyarrow
-sentencepiece>=0.1.99
+numpy
+pandas
+pyarrow>=14.0.0
+dill<0.3.9
+sentencepiece
 
 # Monitoring & Logging
-wandb>=0.16.0
-tensorboard>=2.15.0
-tqdm>=4.66.0
+wandb
+tqdm
 
 # Utilities
-pyyaml>=6.0.0
-omegaconf>=2.3.0
-rich>=13.0.0
-typer>=0.9.0
+pyyaml
+omegaconf
+rich
+typer
 
 # Evaluation
-evaluate>=0.4.0
-nltk>=3.8.0
-rouge-score>=0.1.2
+evaluate
+nltk
+rouge-score
