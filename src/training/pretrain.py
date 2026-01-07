@@ -173,21 +173,57 @@ class CustomTrainingArguments(TrainingArguments):
 def get_pretrain_datasets(data_args: DataArguments, streaming: bool = True) -> List[DatasetConfig]:
     """Get list of pre-training dataset configurations."""
     
-    # FORCE SAMPLE DATASET to bypass gating/config issues
-    logger.info("FORCING usage of sample dataset for initial run.")
+    if data_args.use_sample_dataset:
+        logger.info("Using sample dataset as requested.")
+        return [
+            DatasetConfig(
+                name="nvidia/Nemotron-Pretraining-Dataset-sample",
+                config_name="Nemotron-CC-High-Quality",
+                weight=1.0,
+                streaming=False,
+                split="train",
+            )
+        ]
+    
+    # Parse custom weights or use default Nemotron blend
+    weights = [0.5, 0.2, 0.15, 0.1, 0.05]
+    if data_args.dataset_weights:
+        weights = [float(w) for w in data_args.dataset_weights.split(",")]
+    
+    logger.info(f"Loading full pre-training corpus with streaming={streaming}")
     return [
         DatasetConfig(
-            name="nvidia/Nemotron-Pretraining-Dataset-sample",
-            config_name="Nemotron-CC-High-Quality",
-            weight=1.0,
-            streaming=False,
+            name="nvidia/Nemotron-CC-v2.1",
+            weight=weights[0] if len(weights) > 0 else 0.5,
+            streaming=streaming,
             split="train",
-        )
+        ),
+        DatasetConfig(
+            name="nvidia/Nemotron-Pretraining-Code-v2",
+            weight=weights[1] if len(weights) > 1 else 0.2,
+            streaming=streaming,
+            split="train",
+        ),
+        DatasetConfig(
+            name="nvidia/Nemotron-CC-Math-v1",
+            weight=weights[2] if len(weights) > 2 else 0.15,
+            streaming=streaming,
+            split="train",
+        ),
+        DatasetConfig(
+            name="nvidia/Nemotron-Pretraining-Specialized-v1",
+            config_name="Nemotron-Pretraining-Wiki-Rewrite", # Specific config
+            weight=weights[3] if len(weights) > 3 else 0.1,
+            streaming=streaming,
+            split="train",
+        ),
+        DatasetConfig(
+            name="nvidia/Nemotron-CC-Code-v1",
+            weight=weights[4] if len(weights) > 4 else 0.05,
+            streaming=streaming,
+            split="train",
+        ),
     ]
-    
-    # Original logic commented out to prevent accidental loading of gated datasets
-    # if data_args.use_sample_dataset:
-    #     return [ ... ]
 
 
 def main():
