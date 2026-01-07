@@ -40,7 +40,7 @@ python3 scripts/train_tokenizer.py --vocab_size 32768
 
 # 5. Cluster Verification
 echo "[5/5] Verifying Cluster Status..."
-python3 verify_cluster.py
+python3 scripts/verify_cluster.py
 
 echo "=========================================="
 echo "   Setup Complete! Ready to Train."
