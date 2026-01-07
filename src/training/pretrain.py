@@ -234,6 +234,9 @@ def main():
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # Load from JSON config file
         model_args, data_args, training_args = parser.parse_json_file(sys.argv[1])
+    elif len(sys.argv) == 2 and (sys.argv[1].endswith(".yaml") or sys.argv[1].endswith(".yml")):
+        # Load from YAML config file
+        model_args, data_args, training_args = parser.parse_yaml_file(sys.argv[1])
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
     
