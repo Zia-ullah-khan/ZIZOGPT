@@ -111,6 +111,14 @@ class ModelArguments:
 class DataArguments:
     """Arguments for data configuration."""
     
+    dataset_name: Optional[str] = field(
+        default=None,
+        metadata={"help": "Name of the dataset to load"}
+    )
+    dataset_config_name: Optional[str] = field(
+        default=None,
+        metadata={"help": "Configuration name of the dataset"}
+    )
     use_sample_dataset: bool = field(
         default=False,
         metadata={"help": "Use sample dataset for testing"}
@@ -173,6 +181,18 @@ class CustomTrainingArguments(TrainingArguments):
 def get_pretrain_datasets(data_args: DataArguments, streaming: bool = True) -> List[DatasetConfig]:
     """Get list of pre-training dataset configurations."""
     
+    if data_args.dataset_name:
+        logger.info(f"Using custom dataset: {data_args.dataset_name} with config: {data_args.dataset_config_name}")
+        return [
+            DatasetConfig(
+                name=data_args.dataset_name,
+                config_name=data_args.dataset_config_name,
+                weight=1.0,
+                streaming=streaming,
+                split="train",
+            )
+        ]
+
     if data_args.use_sample_dataset:
         logger.info("Using sample dataset as requested.")
         return [
