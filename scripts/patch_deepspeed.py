@@ -12,8 +12,11 @@ def patch_deepspeed():
     site_packages = site.getsitepackages()
     target_file = None
     
+    # Target the source of the crash: original_muon.py
+    relative_path = os.path.join("deepspeed", "runtime", "zero", "muon", "original_muon.py")
+    
     for sp in site_packages:
-        possible_path = os.path.join(sp, "deepspeed", "runtime", "zero", "stage_1_and_2.py")
+        possible_path = os.path.join(sp, relative_path)
         if os.path.exists(possible_path):
             target_file = possible_path
             break
@@ -21,12 +24,12 @@ def patch_deepspeed():
     if not target_file:
         # Fallback search
         logger.warning("Standard site-packages search failed. Searching /usr/local/lib...")
-        files = glob.glob("/usr/local/lib/python*/dist-packages/deepspeed/runtime/zero/stage_1_and_2.py")
+        files = glob.glob(f"/usr/local/lib/python*/dist-packages/{relative_path}")
         if files:
             target_file = files[0]
             
     if not target_file:
-        logger.error("Could not locate deepspeed/runtime/zero/stage_1_and_2.py")
+        logger.error(f"Could not locate {relative_path}")
         return
 
     logger.info(f"Patching DeepSpeed at: {target_file}")
@@ -37,8 +40,9 @@ def patch_deepspeed():
     new_lines = []
     patched = False
     for line in lines:
-        if "from deepspeed.runtime.zero.muon.original_muon import muon_update" in line:
-            logger.info("Found offending line. Commenting it out.")
+        # Comment out the compiler decorator
+        if "@compiler.compile()" in line:
+            logger.info("Found offending decorator. Commenting it out.")
             new_lines.append(f"# PATCHED BY ZIZOGPT: {line}")
             patched = True
         else:
