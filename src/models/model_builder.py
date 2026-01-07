@@ -36,16 +36,16 @@ class ModelConfig:
     """Configuration for model architecture."""
     architecture: str = "llama"
     hidden_size: int = 2048
-    intermediate_size: int = 5504
-    num_hidden_layers: int = 24
-    num_attention_heads: int = 16
-    num_key_value_heads: int = 16
-    vocab_size: int = 128000  # Updated
-    max_position_embeddings: int = 262144  # Updated
-    rope_theta: float = 10000.0
+    intermediate_size: int = 8192  # Llama 3.2 1B
+    num_hidden_layers: int = 16    # Llama 3.2 1B
+    num_attention_heads: int = 32  # Llama 3.2 1B
+    num_key_value_heads: int = 8   # Llama 3.2 1B
+    vocab_size: int = 32768        # Optimized for 1B Scratch Build
+    max_position_embeddings: int = 131072  # Llama 3.2 supports 128k
+    rope_theta: float = 500000.0   # Llama 3.2
     initializer_range: float = 0.02
-    use_flash_attention_2: bool = True # Corrected name
-    pretrained_model_name_or_path: Optional[str] = None
+    use_flash_attention_2: bool = True
+    pretrained_model_name_or_path: Optional[str] = None # Ensure scratch build by default
 
 
 @dataclass

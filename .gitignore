@@ -86,3 +86,5 @@ datasets/
 tmp/
 temp/
 *.tmp
+
+.gemini/

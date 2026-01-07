@@ -6,7 +6,7 @@ import json
 
 def main():
     parser = argparse.ArgumentParser(description="Train a BPE tokenizer from scratch")
-    parser.add_argument("--vocab_size", type=int, default=128000, help="Vocabulary size")
+    parser.add_argument("--vocab_size", type=int, default=32768, help="Vocabulary size")
     parser.add_argument("--output_dir", type=str, default="./tokenizer", help="Directory to save the tokenizer")
     parser.add_argument("--sample_size", type=int, default=1000000, help="Number of samples to use for training from the sample dataset")
     args = parser.parse_args()

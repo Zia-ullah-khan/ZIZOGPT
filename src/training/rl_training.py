@@ -21,7 +21,7 @@ from transformers import (
 )
 from transformers.trainer_utils import get_last_checkpoint
 from trl import DPOTrainer, DPOConfig
-from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training, PeftModel
+from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training, PeftModel, PeftConfig
 import datasets
 from datasets import load_dataset, Dataset
 
@@ -43,6 +43,10 @@ class ModelArguments:
     model_name_or_path: str = field(
         default="./outputs/sft/final",
         metadata={"help": "Path to the SFT model"}
+    )
+    ref_model_name_or_path: Optional[str] = field(
+        default=None,
+        metadata={"help": "Path to the reference model for DPO (defaults to model_name_or_path)"}
     )
     tokenizer_path: Optional[str] = field(
         default=None,
@@ -103,7 +107,7 @@ class DataArguments:
     """Arguments for data configuration."""
     
     dataset_name: str = field(
-        default="nvidia/Nemotron-3-Nano-RL-Training-Blend",
+        default="Intel/orca_dpo_pairs",
         metadata={"help": "RL training dataset"}
     )
     max_seq_length: int = field(
@@ -196,7 +200,16 @@ def prepare_dpo_dataset(
         if "chosen" in examples and "rejected" in examples:
             # Standard DPO format
             for i in range(len(examples["chosen"])):
-                prompt = examples.get("prompt", [""] * len(examples["chosen"]))[i]
+                # Try to find prompt in various columns
+                if "prompt" in examples:
+                    prompt = examples["prompt"][i]
+                elif "question" in examples:
+                    prompt = examples["question"][i]
+                    if "system" in examples and examples["system"][i]:
+                        prompt = f"{examples['system'][i]}\n\n{prompt}"
+                else:
+                    prompt = ""
+                
                 chosen = examples["chosen"][i]
                 rejected = examples["rejected"][i]
                 
@@ -320,6 +333,38 @@ def main():
     
     # Load model
     logger.info(f"Loading model: {model_args.model_name_or_path}")
+
+    # Check if we are loading an adapter
+    is_adapter = os.path.exists(os.path.join(model_args.model_name_or_path, "adapter_config.json"))
+    
+    if is_adapter:
+        logger.info(f"Detected adapter at {model_args.model_name_or_path}. Merging into base model...")
+        peft_config = PeftConfig.from_pretrained(model_args.model_name_or_path)
+        base_model_path = peft_config.base_model_name_or_path
+        
+        logger.info(f"Loading base model from: {base_model_path}")
+        model = AutoModelForCausalLM.from_pretrained(
+            base_model_path,
+            quantization_config=quantization_config,
+            device_map="auto" if quantization_config else None,
+            torch_dtype=torch_dtype,
+            trust_remote_code=True,
+            attn_implementation="flash_attention_2" if model_args.use_flash_attention_2 else None,
+        )
+        
+        logger.info("Merging adapter...")
+        model = PeftModel.from_pretrained(model, model_args.model_name_or_path)
+        model = model.merge_and_unload()
+    else:
+        model = AutoModelForCausalLM.from_pretrained(
+            model_args.model_name_or_path,
+            quantization_config=quantization_config,
+            device_map="auto" if quantization_config else None,
+            torch_dtype=torch_dtype,
+            trust_remote_code=True,
+            attn_implementation="flash_attention_2" if model_args.use_flash_attention_2 else None,
+        )
+        logger.info(f"Loading model: {model_args.model_name_or_path}")
     
     model = AutoModelForCausalLM.from_pretrained(
         model_args.model_name_or_path,

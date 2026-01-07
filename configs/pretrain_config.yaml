@@ -9,7 +9,7 @@ model:
   num_hidden_layers: 24
   num_attention_heads: 16
   num_key_value_heads: 16
-  vocab_size: 128000
+  vocab_size: 32768
   max_position_embeddings: 262144
   rope_theta: 10000.0
   
@@ -59,9 +59,9 @@ datasets:
 
 training:
   # Training hyperparameters
-  per_device_train_batch_size: 4
-  per_device_eval_batch_size: 4
-  gradient_accumulation_steps: 8
+  per_device_train_batch_size: 64
+  per_device_eval_batch_size: 64
+  gradient_accumulation_steps: 1
   num_train_epochs: 1
   max_steps: -1  # -1 means use epochs
   
@@ -89,7 +89,8 @@ training:
   save_total_limit: 3
   
   # Distributed training
-  deepspeed: "configs/deepspeed_zero3.json"
+  deepspeed: "configs/deepspeed_zero1.json"
+  dataloader_num_workers: 16
   
   # Output
   output_dir: "./outputs/pretrain"
