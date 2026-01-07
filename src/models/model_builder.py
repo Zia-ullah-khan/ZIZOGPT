@@ -44,7 +44,7 @@ class ModelConfig:
     max_position_embeddings: int = 131072  # Llama 3.2 supports 128k
     rope_theta: float = 500000.0   # Llama 3.2
     initializer_range: float = 0.02
-    use_flash_attention_2: bool = True
+    use_flash_attention_2: bool = False
     pretrained_model_name_or_path: Optional[str] = None # Ensure scratch build by default
 
 
