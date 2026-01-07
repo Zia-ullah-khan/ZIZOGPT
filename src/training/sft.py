@@ -110,6 +110,10 @@ class ModelArguments:
 class DataArguments:
     """Arguments for data configuration."""
     
+    dataset_name: Optional[str] = field(
+        default=None,
+        metadata={"help": "Name of the dataset to load"}
+    )
     max_seq_length: int = field(
         default=4096,
         metadata={"help": "Maximum sequence length for training"}
@@ -168,6 +172,15 @@ class SFTTrainingArguments(TrainingArguments):
 
 def get_sft_datasets(data_args: DataArguments, streaming: bool = True) -> List[DatasetConfig]:
     """Get list of SFT dataset configurations."""
+    
+    if data_args.dataset_name:
+        logger.info(f"Using custom SFT dataset: {data_args.dataset_name}")
+        return [DatasetConfig(
+            name=data_args.dataset_name,
+            weight=1.0,
+            streaming=streaming,
+            split="train_sft" if "ultrachat" in data_args.dataset_name else "train"
+        )]
     
     all_datasets = {
         "chat": DatasetConfig(
@@ -286,8 +299,17 @@ def main():
     # Parse arguments
     parser = HfArgumentParser((ModelArguments, DataArguments, SFTTrainingArguments))
     
-    if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
-        model_args, data_args, training_args = parser.parse_json_file(sys.argv[1])
+    # Robustly find config file in args
+    config_file = None
+    for arg in sys.argv[1:]:
+        if arg.endswith(".json") or arg.endswith(".yaml") or arg.endswith(".yml"):
+            config_file = arg
+            break
+            
+    if config_file and config_file.endswith(".json"):
+        model_args, data_args, training_args = parser.parse_json_file(config_file)
+    elif config_file and (config_file.endswith(".yaml") or config_file.endswith(".yml")):
+        model_args, data_args, training_args = parser.parse_yaml_file(config_file)
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
     

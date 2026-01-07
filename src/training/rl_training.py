@@ -299,8 +299,17 @@ def main():
     # Parse arguments
     parser = HfArgumentParser((ModelArguments, DataArguments, RLTrainingArguments))
     
-    if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
-        model_args, data_args, training_args = parser.parse_json_file(sys.argv[1])
+    # Robustly find config file in args
+    config_file = None
+    for arg in sys.argv[1:]:
+        if arg.endswith(".json") or arg.endswith(".yaml") or arg.endswith(".yml"):
+            config_file = arg
+            break
+            
+    if config_file and config_file.endswith(".json"):
+        model_args, data_args, training_args = parser.parse_json_file(config_file)
+    elif config_file and (config_file.endswith(".yaml") or config_file.endswith(".yml")):
+        model_args, data_args, training_args = parser.parse_yaml_file(config_file)
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
     

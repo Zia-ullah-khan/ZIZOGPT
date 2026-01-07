@@ -1,125 +1,92 @@
 #!/bin/bash
-# Full training pipeline for ZIZOGPT (from scratch)
-# This script runs tokenizer training, pre-training, SFT, and RL in sequence
+set -e  # Exit immediately if a command exits with a non-zero status.
 
-set -e  # Exit on error
+# ==============================================================================
+# ZIZOGPT FULL TRAINING PIPELINE (4x B200)
+# ==============================================================================
+# Sequence:
+# 1. Pre-training (Scratch 1.5B Model on FineWeb-Edu 10B Tokens)
+# 2. SFT (Supervised Fine-Tuning on UltraChat)
+# 3. DPO (Direct Preference Optimization on UltraFeedback)
+# ==============================================================================
 
-# Configuration
-export WANDB_PROJECT="zizogpt-from-scratch"
-export HF_HOME="./cache/huggingface"
-export TOKENIZERS_PARALLELISM="false"
+# --- Environment Setup ---
+export TORCH_COMPILE_DISABLE=1
+export TOKENIZERS_PARALLELISM=false
+export HF_HUB_ENABLE_HF_TRANSFER=1  # Faster downloads
 
-# GPU settings (optimized for a single H100)
-export CUDA_VISIBLE_DEVICES="0"
-TOKENIZER_PATH="./tokenizer"
+echo "======================================================================"
+echo "   STARTING ZIZOGPT PIPELINE"
+echo "======================================================================"
 
-echo "======================================"
-echo "ZIZOGPT Full Training Pipeline (From Scratch)"
-echo "======================================"
-
-# 1. Train Tokenizer
+# --- Step 1: Pre-training ---
 echo ""
-echo "Step 1/4: Training Tokenizer..."
-echo "======================================"
+echo ">>> [Stage 1/3] Pre-training (Scratch Build)..."
+echo "Dataset: HuggingFaceFW/fineweb-edu (sample-10BT)"
+echo "Config: configs/pretrain_config_flat.yaml"
 
-python scripts/train_tokenizer.py \
-    --vocab_size 128000 \
-    --output_dir $TOKENIZER_PATH
+deepspeed --num_gpus=4 scripts/run_pretrain.py \
+    configs/pretrain_config_flat.yaml
 
-echo "Tokenizer training complete!"
+if [ $? -ne 0 ]; then
+    echo "!!! Pre-training FAILED. Aborting pipeline."
+    exit 1
+fi
 
-# 2. Pre-training
+echo ">>> Pre-training COMPLETE."
+
+# --- Step 2: Supervised Fine-Tuning (SFT) ---
 echo ""
-echo "Step 2/4: Pre-training..."
-echo "======================================"
+echo ">>> [Stage 2/3] Supervised Fine-Tuning (SFT)..."
+echo "Dataset: HuggingFaceH4/ultrachat_200k"
+echo "Base Model: outputs/pretrain/final"
 
-python scripts/run_pretrain.py \
-    --from_scratch true \
-    --architecture llama \
-    --tokenizer_path $TOKENIZER_PATH \
-    --hidden_size 2048 \
-    --intermediate_size 5504 \
-    --num_hidden_layers 24 \
-    --num_attention_heads 16 \
-    --num_key_value_heads 16 \
-    --vocab_size 128000 \
-    --max_position_embeddings 262144 \
-    --use_sample_dataset true \
-    --max_seq_length 4096 \
-    --streaming false \
-    --output_dir ./outputs/pretrain \
-    --per_device_train_batch_size 1 \
-    --gradient_accumulation_steps 32 \
-    --learning_rate 3e-4 \
-    --num_train_epochs 1 \
-    --warmup_steps 100 \
-    --logging_steps 10 \
-    --save_steps 500 \
-    --bf16 true \
-    --gradient_checkpointing true \
-    --report_to wandb \
-    --run_name zizogpt-pretrain-scratch
+# Explicitly set the dataset name in the command to override defaults
+deepspeed --num_gpus=4 scripts/run_sft.py \
+    configs/sft_config_flat.yaml \
+    --model_name_or_path "./outputs/pretrain/final" \
+    --dataset_name "HuggingFaceH4/ultrachat_200k"
 
-echo "Pre-training complete!"
+if [ $? -ne 0 ]; then
+    echo "!!! SFT FAILED. Aborting pipeline."
+    exit 1
+fi
 
-# 3. Supervised Fine-Tuning
+echo ">>> SFT COMPLETE."
+
+# --- Step 3: Direct Preference Optimization (DPO) ---
 echo ""
-echo "Step 3/4: Supervised Fine-Tuning..."
-echo "======================================"
+echo ">>> [Stage 3/3] Direct Preference Optimization (DPO)..."
+echo "Dataset: HuggingFaceH4/ultrafeedback_binarized"
+echo "Base Model: outputs/sft/merged"
 
-python scripts/run_sft.py \
-    --model_name_or_path ./outputs/pretrain/final \
-    --tokenizer_path $TOKENIZER_PATH \
-    --use_lora true \
-    --lora_r 64 \
-    --lora_alpha 128 \
-    --lora_dropout 0.05 \
-    --max_seq_length 4096 \
-    --dataset_subset chat \
-    --output_dir ./outputs/sft \
-    --per_device_train_batch_size 2 \
-    --gradient_accumulation_steps 8 \
-    --learning_rate 2e-5 \
-    --num_train_epochs 3 \
-    --warmup_ratio 0.03 \
-    --logging_steps 10 \
-    --save_steps 500 \
-    --bf16 true \
-    --gradient_checkpointing true \
-    --report_to wandb \
-    --run_name zizogpt-sft
+# Check if merged model exists (SFT script should merge LoRA)
+if [ ! -d "./outputs/sft/merged" ]; then
+    echo "WARNING: Merged SFT model not found at ./outputs/sft/merged"
+    echo "Checking for final checkpoint..."
+    if [ -d "./outputs/sft/final" ]; then
+        echo "Using ./outputs/sft/final (Adapters will need to be loaded)"
+        MODEL_PATH="./outputs/sft/final"
+        # Note: DPO script handles adapter loading if detected
+    else
+        echo "!!! No SFT model found. Aborting."
+        exit 1
+    fi
+else
+    MODEL_PATH="./outputs/sft/merged"
+fi
 
-echo "SFT complete!"
+deepspeed --num_gpus=4 scripts/run_rl.py \
+    configs/dpo_config_flat.yaml \
+    --model_name_or_path "$MODEL_PATH" \
+    --ref_model_name_or_path "$MODEL_PATH"
 
-# 4. Reinforcement Learning (DPO)
-echo ""
-echo "Step 4/4: Reinforcement Learning (DPO)..."
-echo "======================================"
+if [ $? -ne 0 ]; then
+    echo "!!! DPO FAILED. Aborting pipeline."
+    exit 1
+fi
 
-python scripts/run_rl.py \
-    --model_name_or_path ./outputs/sft/final \
-    --tokenizer_path $TOKENIZER_PATH \
-    --use_lora true \
-    --lora_r 32 \
-    --lora_alpha 64 \
-    --rl_algorithm dpo \
-    --beta 0.1 \
-    --max_seq_length 2048 \
-    --output_dir ./outputs/rl \
-    --per_device_train_batch_size 1 \
-    --gradient_accumulation_steps 16 \
-    --learning_rate 5e-7 \
-    --num_train_epochs 1 \
-    --warmup_ratio 0.1 \
-    --logging_steps 10 \
-    --save_steps 200 \
-    --bf16 true \
-    --gradient_checkpointing true \
-    --report_to wandb \
-    --run_name zizogpt-rl
-
-echo ""
-echo "======================================"
-echo "Training Pipeline Complete!"
-echo "======================================"
-echo "Final model saved to: ./outputs/rl/final"
+echo "======================================================================"
+echo "   ZIZOGPT PIPELINE COMPLETE"
+echo "   Final Model: ./outputs/rl/final"
+echo "======================================================================"
