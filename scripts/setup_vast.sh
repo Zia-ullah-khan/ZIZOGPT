@@ -14,6 +14,9 @@ echo "[2/5] Installing Python Libraries..."
 unset PIP_CONSTRAINT
 pip install --upgrade pip
 
+# Install PyTorch (Force Stable 2.4.0 to avoid Triton/Inductor bugs in 2.5+)
+pip install torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 --index-url https://download.pytorch.org/whl/cu121
+
 # Pre-emptively remove conflicting versions
 pip uninstall -y dill pyarrow datasets
 
