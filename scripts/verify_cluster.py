@@ -49,8 +49,8 @@ def verify_cluster():
             device = torch.device(f"cuda:{i}")
             
             # Create large tensors to test memory and compute
-            a = torch.randn(4096, 4096, device=device, dtype=torch.bfloat16)
-            b = torch.randn(4096, 4096, device=device, dtype=torch.bfloat16)
+            a = torch.randn(4096, 4096, device=device, dtype=torch.bfloat16, requires_grad=True)
+            b = torch.randn(4096, 4096, device=device, dtype=torch.bfloat16, requires_grad=True)
             target = torch.randn(4096, 4096, device=device, dtype=torch.bfloat16)
             
             # Forward
