@@ -299,16 +299,13 @@ def main():
     # Parse arguments
     parser = HfArgumentParser((ModelArguments, DataArguments, SFTTrainingArguments))
     
-    # Robustly find config file in args
+    # Only treat YAML as main config; ignore .json (used for DeepSpeed)
     config_file = None
     for arg in sys.argv[1:]:
-        if arg.endswith(".json") or arg.endswith(".yaml") or arg.endswith(".yml"):
+        if arg.endswith(".yaml") or arg.endswith(".yml"):
             config_file = arg
             break
-            
-    if config_file and config_file.endswith(".json"):
-        model_args, data_args, training_args = parser.parse_json_file(config_file)
-    elif config_file and (config_file.endswith(".yaml") or config_file.endswith(".yml")):
+    if config_file:
         model_args, data_args, training_args = parser.parse_yaml_file(config_file)
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
@@ -467,7 +464,8 @@ def main():
         report_to=training_args.report_to,
         run_name=training_args.run_name,
         packing=data_args.packing,
-        dataset_text_field="text"
+        dataset_text_field="text",
+        deepspeed=training_args.deepspeed,
     )
     
     # Initialize trainer

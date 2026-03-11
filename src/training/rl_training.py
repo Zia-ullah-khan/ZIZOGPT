@@ -178,6 +178,10 @@ class RLTrainingArguments:
     run_name: str = field(default="zizogpt-rl")
     
     overwrite_output_dir: bool = field(default=True)
+    
+    # Distributed
+    deepspeed: Optional[str] = field(default=None, metadata={"help": "Path to DeepSpeed config"})
+    dataloader_num_workers: int = field(default=4, metadata={"help": "DataLoader workers"})
 
 
 def prepare_dpo_dataset(
@@ -299,16 +303,13 @@ def main():
     # Parse arguments
     parser = HfArgumentParser((ModelArguments, DataArguments, RLTrainingArguments))
     
-    # Robustly find config file in args
+    # Only treat YAML as main config; ignore .json (used for DeepSpeed)
     config_file = None
     for arg in sys.argv[1:]:
-        if arg.endswith(".json") or arg.endswith(".yaml") or arg.endswith(".yml"):
+        if arg.endswith(".yaml") or arg.endswith(".yml"):
             config_file = arg
             break
-            
-    if config_file and config_file.endswith(".json"):
-        model_args, data_args, training_args = parser.parse_json_file(config_file)
-    elif config_file and (config_file.endswith(".yaml") or config_file.endswith(".yml")):
+    if config_file:
         model_args, data_args, training_args = parser.parse_yaml_file(config_file)
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
@@ -374,15 +375,6 @@ def main():
             attn_implementation="flash_attention_2" if model_args.use_flash_attention_2 else None,
         )
         logger.info(f"Loading model: {model_args.model_name_or_path}")
-    
-    model = AutoModelForCausalLM.from_pretrained(
-        model_args.model_name_or_path,
-        quantization_config=quantization_config,
-        device_map="auto" if quantization_config else None,
-        torch_dtype=torch_dtype,
-        trust_remote_code=True,
-        attn_implementation="flash_attention_2" if model_args.use_flash_attention_2 else None,
-    )
     
     # Load reference model (for DPO)
     ref_model = None
@@ -504,6 +496,8 @@ def main():
             max_length=data_args.max_seq_length,
             max_prompt_length=data_args.max_prompt_length,
             remove_unused_columns=False,
+            deepspeed=training_args.deepspeed,
+            dataloader_num_workers=training_args.dataloader_num_workers,
         )
         
         trainer = DPOTrainer(
