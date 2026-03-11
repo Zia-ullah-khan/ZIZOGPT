@@ -69,8 +69,8 @@ class ModelArguments:
         metadata={"help": "Initializer range for model weights."}
     )
     use_flash_attention_2: bool = field(
-        default=True,
-        metadata={"help": "Enable Flash Attention 2 for faster training."}
+        default=False,
+        metadata={"help": "Enable Flash Attention 2 (requires flash-attn package)."}
     )
     
     # LoRA configuration
