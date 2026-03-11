@@ -252,16 +252,17 @@ def main():
     # Parse arguments
     parser = HfArgumentParser((ModelArguments, DataArguments, CustomTrainingArguments))
     
-    # Robustly find config file in args
+    # Detect a high-level config file (YAML only).
+    # We deliberately ignore `.json` here because JSON files are often
+    # used for DeepSpeed configs (passed via `--deepspeed`), which are
+    # not meant to be parsed by `HfArgumentParser`.
     config_file = None
     for arg in sys.argv[1:]:
-        if arg.endswith(".json") or arg.endswith(".yaml") or arg.endswith(".yml"):
+        if arg.endswith(".yaml") or arg.endswith(".yml"):
             config_file = arg
             break
-            
-    if config_file and config_file.endswith(".json"):
-        model_args, data_args, training_args = parser.parse_json_file(config_file)
-    elif config_file and (config_file.endswith(".yaml") or config_file.endswith(".yml")):
+    
+    if config_file:
         model_args, data_args, training_args = parser.parse_yaml_file(config_file)
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
