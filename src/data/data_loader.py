@@ -158,15 +158,32 @@ class NemotronDataLoader:
         for config in dataset_configs:
             try:
                 logger.info(f"Loading SFT dataset: {config.name}")
-                ds = load_dataset(config.name, split=config.split, streaming=config.streaming)
+                load_kwargs = dict(split=config.split, streaming=config.streaming)
+                if config.config_name:
+                    load_kwargs["name"] = config.config_name
+                ds = load_dataset(config.name, **load_kwargs)
                 loaded_datasets.append(ds)
                 probabilities.append(config.weight)
             except Exception as e:
                 logger.warning(f"Failed to load SFT dataset {config.name}: {e}")
+                if "Nemotron-Post-Training-Dataset-v2" in config.name:
+                    fallback_name = "nvidia/Nemotron-Post-Training-Dataset-v1"
+                    logger.info(f"Falling back to non-gated {fallback_name} (v2 requires Hub access)")
+                    try:
+                        ds = load_dataset(fallback_name, split=config.split, streaming=config.streaming)
+                        loaded_datasets.append(ds)
+                        probabilities.append(config.weight)
+                    except Exception as e2:
+                        logger.warning(f"Fallback to {fallback_name} failed: {e2}")
                 continue
 
         if not loaded_datasets:
-            raise ValueError("No SFT datasets could be loaded.")
+            raise ValueError(
+                "No SFT datasets could be loaded. "
+                "If using nvidia/Nemotron-Post-Training-Dataset-v2: accept the gated terms at "
+                "https://huggingface.co/datasets/nvidia/Nemotron-Post-Training-Dataset-v2, "
+                "or use --dataset_name nvidia/Nemotron-Post-Training-Dataset-v1 (non-gated)."
+            )
 
         total_weight = sum(probabilities)
         probabilities = [p / total_weight for p in probabilities]

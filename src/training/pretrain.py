@@ -387,9 +387,23 @@ def main():
     
     # Save model
     logger.info("Saving final model...")
-    trainer.save_model(os.path.join(training_args.output_dir, "final"))
-    tokenizer.save_pretrained(os.path.join(training_args.output_dir, "final"))
-    
+    final_path = os.path.join(training_args.output_dir, "final")
+    trainer.save_model(final_path)
+    tokenizer.save_pretrained(final_path)
+
+    # Ensure config.json has model_type (DeepSpeed save can omit it; SFT/RL need it)
+    if trainer.is_world_process_zero():
+        import json
+        config_path = os.path.join(final_path, "config.json")
+        if os.path.exists(config_path):
+            with open(config_path, "r") as f:
+                config = json.load(f)
+            if config.get("model_type") is None:
+                config["model_type"] = model_args.architecture
+                with open(config_path, "w") as f:
+                    json.dump(config, f, indent=2)
+                logger.info(f"Added model_type={model_args.architecture} to config.json")
+
     # Save training metrics
     metrics = train_result.metrics
     trainer.log_metrics("train", metrics)

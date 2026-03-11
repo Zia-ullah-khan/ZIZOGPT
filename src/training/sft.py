@@ -175,11 +175,20 @@ def get_sft_datasets(data_args: DataArguments, streaming: bool = True) -> List[D
     
     if data_args.dataset_name:
         logger.info(f"Using custom SFT dataset: {data_args.dataset_name}")
+        split = "train_sft" if "ultrachat" in data_args.dataset_name else "train"
+        config_name = None
+        if "Nemotron-Post-Training-Dataset-v2" in data_args.dataset_name:
+            config_name = "SFT"
+            if data_args.dataset_subset:
+                split = data_args.dataset_subset
+        elif "Nemotron-Post-Training-Dataset-v1" in data_args.dataset_name and data_args.dataset_subset:
+            split = data_args.dataset_subset
         return [DatasetConfig(
             name=data_args.dataset_name,
             weight=1.0,
             streaming=streaming,
-            split="train_sft" if "ultrachat" in data_args.dataset_name else "train"
+            split=split,
+            config_name=config_name,
         )]
     
     all_datasets = {
