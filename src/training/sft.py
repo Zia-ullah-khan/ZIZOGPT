@@ -22,7 +22,7 @@ from transformers import (
 )
 from transformers.trainer_utils import get_last_checkpoint
 from trl import SFTTrainer, SFTConfig
-from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+from peft import LoraConfig, prepare_model_for_kbit_training
 import datasets
 from datasets import load_dataset
 
@@ -148,6 +148,7 @@ class SFTTrainingArguments(TrainingArguments):
     num_train_epochs: float = field(default=3.0)
     max_steps: int = field(default=-1)
     warmup_ratio: float = field(default=0.03)
+    warmup_steps: int = field(default=0, metadata={"help": "Warmup steps (overrides warmup_ratio when > 0)"})
     weight_decay: float = field(default=0.0)
     lr_scheduler_type: str = field(default="cosine")
     logging_steps: int = field(default=10)
@@ -178,7 +179,7 @@ def get_sft_datasets(data_args: DataArguments, streaming: bool = True) -> List[D
         split = "train_sft" if "ultrachat" in data_args.dataset_name else "train"
         config_name = None
         if "Nemotron-Post-Training-Dataset-v2" in data_args.dataset_name:
-            config_name = "SFT"
+            config_name = "default"
             if data_args.dataset_subset:
                 split = data_args.dataset_subset
         elif "Nemotron-Post-Training-Dataset-v1" in data_args.dataset_name and data_args.dataset_subset:
@@ -397,16 +398,13 @@ def main():
         )
         tokenizer.chat_template = chat_template
     
-    # Setup LoRA
+    # Setup LoRA (pass peft_config to SFTTrainer; do not wrap model here)
     peft_config = None
     if model_args.use_lora:
         logger.info("Setting up LoRA...")
-        
         if quantization_config:
             model = prepare_model_for_kbit_training(model)
-        
         target_modules = model_args.lora_target_modules.split(",")
-        
         peft_config = LoraConfig(
             r=model_args.lora_r,
             lora_alpha=model_args.lora_alpha,
@@ -415,9 +413,6 @@ def main():
             bias="none",
             task_type="CAUSAL_LM",
         )
-        
-        model = get_peft_model(model, peft_config)
-        model.print_trainable_parameters()
     
     # Enable gradient checkpointing
     if training_args.gradient_checkpointing:
@@ -451,7 +446,7 @@ def main():
         training_args.max_steps = default_max_steps
     
     # Create SFT config
-    sft_config = SFTConfig(
+    sft_kwargs = dict(
         output_dir=training_args.output_dir,
         per_device_train_batch_size=training_args.per_device_train_batch_size,
         per_device_eval_batch_size=training_args.per_device_eval_batch_size,
@@ -459,7 +454,7 @@ def main():
         learning_rate=training_args.learning_rate,
         num_train_epochs=training_args.num_train_epochs,
         max_steps=training_args.max_steps,
-        warmup_ratio=training_args.warmup_ratio,
+        warmup_ratio=training_args.warmup_ratio if training_args.warmup_steps <= 0 else 0,
         weight_decay=training_args.weight_decay,
         lr_scheduler_type=training_args.lr_scheduler_type,
         logging_steps=training_args.logging_steps,
@@ -476,6 +471,9 @@ def main():
         dataset_text_field="text",
         deepspeed=training_args.deepspeed,
     )
+    if training_args.warmup_steps > 0:
+        sft_kwargs["warmup_steps"] = training_args.warmup_steps
+    sft_config = SFTConfig(**sft_kwargs)
     
     # Initialize trainer
     trainer = SFTTrainer(
@@ -496,14 +494,14 @@ def main():
     final_path = os.path.join(training_args.output_dir, "final")
     
     if model_args.use_lora:
-        # Save LoRA weights
-        model.save_pretrained(final_path)
+        # Save LoRA weights (trainer.model has the PeftModel after training)
+        trainer.model.save_pretrained(final_path)
         
         # Optionally merge and save full model
         merged_path = os.path.join(training_args.output_dir, "merged")
         logger.info(f"Merging LoRA weights and saving to {merged_path}...")
         
-        merged_model = model.merge_and_unload()
+        merged_model = trainer.model.merge_and_unload()
         merged_model.save_pretrained(merged_path)
         tokenizer.save_pretrained(merged_path)
     else:
