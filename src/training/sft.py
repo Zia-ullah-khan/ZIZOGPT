@@ -141,6 +141,7 @@ class SFTTrainingArguments(TrainingArguments):
     """Extended training arguments for SFT."""
     
     output_dir: str = field(default="./outputs/sft")
+    overwrite_output_dir: bool = field(default=False, metadata={"help": "Overwrite output directory if it exists"})
     per_device_train_batch_size: int = field(default=4)
     per_device_eval_batch_size: int = field(default=4)
     gradient_accumulation_steps: int = field(default=4)
