@@ -343,6 +343,19 @@ def main():
     
     # Load model
     logger.info(f"Loading model: {model_args.model_name_or_path}")
+    device_map = None if training_args.deepspeed else ("auto" if quantization_config else None)
+
+    def _load_model(path, include_attn=True):
+        kwargs = dict(
+            quantization_config=quantization_config,
+            torch_dtype=torch_dtype,
+            trust_remote_code=True,
+        )
+        if device_map is not None:
+            kwargs["device_map"] = device_map
+        if include_attn:
+            kwargs["attn_implementation"] = "flash_attention_2" if model_args.use_flash_attention_2 else None
+        return AutoModelForCausalLM.from_pretrained(path, **kwargs)
 
     # Check if we are loading an adapter
     is_adapter = os.path.exists(os.path.join(model_args.model_name_or_path, "adapter_config.json"))
@@ -351,29 +364,13 @@ def main():
         logger.info(f"Detected adapter at {model_args.model_name_or_path}. Merging into base model...")
         peft_config = PeftConfig.from_pretrained(model_args.model_name_or_path)
         base_model_path = peft_config.base_model_name_or_path
-        
         logger.info(f"Loading base model from: {base_model_path}")
-        model = AutoModelForCausalLM.from_pretrained(
-            base_model_path,
-            quantization_config=quantization_config,
-            device_map="auto" if quantization_config else None,
-            torch_dtype=torch_dtype,
-            trust_remote_code=True,
-            attn_implementation="flash_attention_2" if model_args.use_flash_attention_2 else None,
-        )
-        
+        model = _load_model(base_model_path)
         logger.info("Merging adapter...")
         model = PeftModel.from_pretrained(model, model_args.model_name_or_path)
         model = model.merge_and_unload()
     else:
-        model = AutoModelForCausalLM.from_pretrained(
-            model_args.model_name_or_path,
-            quantization_config=quantization_config,
-            device_map="auto" if quantization_config else None,
-            torch_dtype=torch_dtype,
-            trust_remote_code=True,
-            attn_implementation="flash_attention_2" if model_args.use_flash_attention_2 else None,
-        )
+        model = _load_model(model_args.model_name_or_path)
         logger.info(f"Loading model: {model_args.model_name_or_path}")
     
     # Load reference model (for DPO)
@@ -381,16 +378,8 @@ def main():
     if training_args.rl_algorithm == "dpo":
         ref_path = model_args.ref_model_name_or_path or model_args.model_name_or_path
         logger.info(f"Loading reference model: {ref_path}")
-        
         if not model_args.use_lora:
-            # Need separate reference model
-            ref_model = AutoModelForCausalLM.from_pretrained(
-                ref_path,
-                quantization_config=quantization_config,
-                device_map="auto" if quantization_config else None,
-                torch_dtype=torch_dtype,
-                trust_remote_code=True,
-            )
+            ref_model = _load_model(ref_path, include_attn=False)
     
     # Load tokenizer
     tokenizer = AutoTokenizer.from_pretrained(

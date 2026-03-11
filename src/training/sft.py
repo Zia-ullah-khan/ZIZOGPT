@@ -348,15 +348,15 @@ def main():
     
     # Load model
     logger.info(f"Loading model: {model_args.model_name_or_path}")
-    
-    model = AutoModelForCausalLM.from_pretrained(
-        model_args.model_name_or_path,
+    load_kwargs = dict(
         quantization_config=quantization_config,
-        device_map="auto" if quantization_config else None,
         torch_dtype=torch_dtype,
         trust_remote_code=True,
         attn_implementation="flash_attention_2" if model_args.use_flash_attention_2 else None,
     )
+    if not training_args.deepspeed:
+        load_kwargs["device_map"] = "auto" if quantization_config else None
+    model = AutoModelForCausalLM.from_pretrained(model_args.model_name_or_path, **load_kwargs)
     
     # Load tokenizer
     tokenizer = AutoTokenizer.from_pretrained(
