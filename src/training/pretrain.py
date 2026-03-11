@@ -287,6 +287,20 @@ def main():
         if last_checkpoint is not None:
             logger.info(f"Checkpoint detected, resuming from {last_checkpoint}")
     
+    # Decide whether to build from scratch or load a pretrained model.
+    #
+    # Many users will start from the default YAML config where
+    # `pretrained_model_name_or_path` is null. In that case we want to
+    # transparently switch to a from-scratch build instead of failing
+    # with a confusing "`pretrained_model_name_or_path` is required"
+    # error.
+    if not model_args.model_name_or_path and not model_args.from_scratch:
+        logger.info(
+            "No `model_name_or_path` provided and `from_scratch` is False. "
+            "Defaulting to `from_scratch=True` for pre-training."
+        )
+        model_args.from_scratch = True
+    
     # Create model and tokenizer
     if model_args.from_scratch:
         logger.info("Building model from scratch...")
