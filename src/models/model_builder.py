@@ -122,12 +122,13 @@ class ModelBuilder:
     def load_pretrained_model(
         self,
         use_4bit: bool = False,
-        device_map: str = "auto",
+        device_map: Optional[Union[str, Dict]] = "auto",
         torch_dtype: torch.dtype = torch.bfloat16,
         trust_remote_code: bool = True,
     ) -> PreTrainedModel:
         """
         Load a pretrained model from HuggingFace or local path.
+        Pass device_map=None when using DeepSpeed ZeRO-3 (incompatible with device_map).
         """
         model_path = self.model_config.pretrained_model_name_or_path
         if not model_path:
@@ -144,14 +145,16 @@ class ModelBuilder:
                 bnb_4bit_quant_type="nf4"
             )
 
-        model = AutoModelForCausalLM.from_pretrained(
-            model_path,
+        load_kwargs = dict(
             quantization_config=quantization_config,
-            device_map=device_map,
             torch_dtype=torch_dtype,
             trust_remote_code=trust_remote_code,
             attn_implementation="flash_attention_2" if self.model_config.use_flash_attention_2 else "eager",
         )
+        if device_map is not None:
+            load_kwargs["device_map"] = device_map
+
+        model = AutoModelForCausalLM.from_pretrained(model_path, **load_kwargs)
 
         num_params = sum(p.numel() for p in model.parameters())
         logger.info(f"Pretrained model loaded with {num_params / 1e9:.2f}B parameters")
@@ -238,6 +241,7 @@ def create_model_and_tokenizer(
     tokenizer_path: Optional[str] = None,
     from_scratch: bool = False,
     use_4bit: bool = False,
+    device_map: Optional[Union[str, Dict]] = "auto",
 ) -> tuple[PreTrainedModel, PreTrainedTokenizer]:
     """
     High-level function to create both model and tokenizer.
@@ -256,7 +260,7 @@ def create_model_and_tokenizer(
         if not model_path:
             raise ValueError("`pretrained_model_name_or_path` is required when `from_scratch=False`.")
         
-        model = builder.load_pretrained_model(use_4bit=use_4bit)
+        model = builder.load_pretrained_model(use_4bit=use_4bit, device_map=device_map)
         tokenizer_source = tokenizer_path or model_path
 
     # Load the tokenizer

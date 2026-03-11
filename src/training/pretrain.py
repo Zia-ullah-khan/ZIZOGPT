@@ -329,10 +329,12 @@ def main():
             pretrained_model_name_or_path=model_args.model_name_or_path,
             use_flash_attention_2=model_args.use_flash_attention_2,
         )
+        device_map = None if training_args.deepspeed else "auto"
         model, tokenizer = create_model_and_tokenizer(
             model_config=model_config,
             tokenizer_path=model_args.tokenizer_path,
             from_scratch=False,
+            device_map=device_map,
         )
     
     # Enable gradient checkpointing
