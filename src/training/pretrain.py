@@ -147,6 +147,7 @@ class CustomTrainingArguments(TrainingArguments):
     
     # Override defaults
     output_dir: str = field(default="./outputs/pretrain")
+    overwrite_output_dir: bool = field(default=True)
     per_device_train_batch_size: int = field(default=4)
     per_device_eval_batch_size: int = field(default=4)
     gradient_accumulation_steps: int = field(default=8)
